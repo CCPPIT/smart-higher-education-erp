@@ -1,0 +1,280 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// مكتب الوزير - نظام إدارة المراسلات الوزارية الذكي
+model MinisterCorrespondence {
+  id          String   @id @default(cuid())
+  subject     String
+  content     String
+  senderId    String   // المرسل (إدارة أو جهة خارجية)
+  senderType  String   // "internal" أو "external"
+  priority    String   @default("medium") // "low", "medium", "high", "urgent"
+  status      String   @default("pending") // "pending", "in_progress", "completed", "archived"
+  category    String   // "decision", "information", "request", "complaint"
+  attachments Json?    // قائمة بالمرفقات
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // علاقات
+  decisions   MinisterDecision[]
+  meetings    MinisterMeeting[]
+  signatures  DigitalSignature[]
+  reports     MinisterReport[]
+  alerts      PredictiveAlert[]
+  archives    Archive[]
+}
+
+// لوحة تحكم القرارات الوزارية
+model MinisterDecision {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  decisionType    String   // "administrative", "financial", "academic", "policy"
+  priority        String   @default("medium")
+  status          String   @default("draft") // "draft", "review", "approved", "implemented", "cancelled"
+  decisionNumber  String   @unique
+  approvedBy      String?
+  approvedAt      DateTime?
+  implementationDate DateTime?
+  budget          Float?
+  relatedCorrespondenceId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // علاقات
+  correspondence  MinisterCorrespondence? @relation(fields: [relatedCorrespondenceId], references: [id])
+  meetings        MinisterMeeting[]
+  signatures      DigitalSignature[]
+  reports         MinisterReport[]
+  archives        Archive[]
+}
+
+// إدارة الاجتماعات الوزارية
+model MinisterMeeting {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  meetingType     String   // "regular", "emergency", "committee", "bilateral"
+  scheduledDate   DateTime
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+  location        String?
+  virtualLink     String?
+  status          String   @default("scheduled") // "scheduled", "in_progress", "completed", "cancelled", "postponed"
+  agenda          Json?    // جدول الأعمال
+  attendees       Json?    // قائمة الحضور
+  minutes         String?  // محاضر الاجتماع
+  followUpActions Json?    // الإجراءات المطلوبة
+  relatedCorrespondenceId String?
+  relatedDecisionId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // علاقات
+  correspondence  MinisterCorrespondence? @relation(fields: [relatedCorrespondenceId], references: [id])
+  decision        MinisterDecision? @relation(fields: [relatedDecisionId], references: [id])
+  reports         MinisterReport[]
+}
+
+// نظام التوقيع الرقمي المشفر
+model DigitalSignature {
+  id              String   @id @default(cuid())
+  documentId      String   // معرف الوثيقة المراد توقيعها
+  documentType    String   // "decision", "correspondence", "report", "contract"
+  signerId        String   // معرف الموقع
+  signerRole      String   // "minister", "deputy", "director"
+  signatureHash   String   // الهاش المشفر للتوقيع
+  signatureMethod String   @default("digital") // "digital", "biometric", "certificate"
+  signedAt        DateTime @default(now())
+  isValid         Boolean  @default(true)
+  verificationData Json?   // بيانات التحقق من التوقيع
+  relatedCorrespondenceId String?
+  relatedDecisionId String?
+  createdAt       DateTime @default(now())
+
+  // علاقات
+  correspondence  MinisterCorrespondence? @relation(fields: [relatedCorrespondenceId], references: [id])
+  decision        MinisterDecision? @relation(fields: [relatedDecisionId], references: [id])
+}
+
+// نظام التقارير الفورية
+model MinisterReport {
+  id              String   @id @default(cuid())
+  title           String
+  type            String   // "daily", "weekly", "monthly", "quarterly", "annual", "emergency"
+  category        String   // "performance", "financial", "academic", "administrative"
+  departmentId    String   // الإدارة المرسلة للتقرير
+  content         String
+  summary         String?  // ملخص تنفيذي
+  metrics         Json?    // المؤشرات والإحصائيات
+  recommendations Json?    // التوصيات
+  attachments     Json?    // المرفقات
+  priority        String   @default("medium")
+  status          String   @default("draft") // "draft", "submitted", "reviewed", "approved"
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  relatedCorrespondenceId String?
+  relatedDecisionId String?
+  relatedMeetingId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // علاقات
+  correspondence  MinisterCorrespondence? @relation(fields: [relatedCorrespondenceId], references: [id])
+  decision        MinisterDecision? @relation(fields: [relatedDecisionId], references: [id])
+  meeting         MinisterMeeting? @relation(fields: [relatedMeetingId], references: [id])
+  archives        Archive[]
+}
+
+// التكامل مع الجهات الحكومية الأخرى (API Hub)
+model ExternalApiIntegration {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  description     String
+  baseUrl         String
+  apiKey          String   @map("encrypted_api_key")
+  status          String   @default("active") // "active", "inactive", "error"
+  lastSync        DateTime?
+  syncFrequency   String   @default("daily") // "realtime", "hourly", "daily", "weekly"
+  endpoints       Json     // قائمة نقاط النهاية المتاحة
+  authentication  Json     // طرق المصادقة
+  rateLimit       Int      @default(1000) // حد المعدل للطلبات
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // علاقات
+  apiLogs         ApiLog[]
+}
+
+// سجل استخدام الـ API
+model ApiLog {
+  id              String   @id @default(cuid())
+  integrationId   String
+  endpoint        String
+  method          String   // "GET", "POST", "PUT", "DELETE"
+  requestData     Json?
+  responseData    Json?
+  statusCode      Int
+  responseTime    Int      // بالميلي ثانية
+  success         Boolean
+  errorMessage    String?
+  timestamp       DateTime @default(now())
+
+  // علاقات
+  integration     ExternalApiIntegration @relation(fields: [integrationId], references: [id])
+}
+
+// أرشفة ذكية للقرارات والوثائق
+model Archive {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  category        String   // "decision", "correspondence", "report", "meeting", "document"
+  archiveType     String   @default("digital") // "digital", "physical", "hybrid"
+  relatedId       String   // معرف العنصر الأصلي
+  relatedType     String   // نوع العنصر الأصلي
+  filePath        String?  // مسار الملف في نظام الأرشفة
+  metadata        Json     // بيانات إضافية للبحث والفهرسة
+  accessLevel     String   @default("restricted") // "public", "restricted", "confidential"
+  retentionPeriod Int      // فترة الاحتفاظ بالسنوات
+  archivedAt      DateTime @default(now())
+  archivedBy      String
+  tags            String[] // وسوم للبحث والتصنيف
+  relatedCorrespondenceId String?
+  relatedDecisionId String?
+  relatedReportId String?
+  createdAt       DateTime @default(now())
+
+  // علاقات
+  correspondence  MinisterCorrespondence? @relation(fields: [relatedCorrespondenceId], references: [id])
+  decision        MinisterDecision? @relation(fields: [relatedDecisionId], references: [id])
+  report          MinisterReport? @relation(fields: [relatedReportId], references: [id])
+}
+
+// مساعد افتراضي للوزير (AI Minister Assistant)
+model AiAssistant {
+  id              String   @id @default(cuid())
+  query           String   // استعلام المستخدم
+  response        String   // رد المساعد الافتراضي
+  confidence      Float    // درجة الثقة في الرد (0-1)
+  context         Json?    // السياق المستخدم في الرد
+  suggestions     Json?    // اقتراحات إضافية
+  relatedData     Json?    // البيانات ذات الصلة المستخدمة
+  processingTime  Int      // زمن المعالجة بالميلي ثانية
+  modelUsed       String   // نموذج الذكاء الاصطناعي المستخدم
+  timestamp       DateTime @default(now())
+
+  // علاقات
+  alerts          PredictiveAlert[]
+}
+
+// تنبيهات واستباق الأحداث الهامة
+model PredictiveAlert {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  type            String   // "deadline", "performance", "risk", "opportunity", "maintenance"
+  priority        String   @default("medium") // "low", "medium", "high", "critical"
+  status          String   @default("active") // "active", "acknowledged", "resolved", "dismissed"
+  predictedDate   DateTime // التاريخ المتوقع للحدوث
+  confidence      Float    // درجة الثقة في التوقع (0-1)
+  impact          String   // "low", "medium", "high", "critical"
+  affectedArea    String   // المجال المتأثر
+  recommendedAction String // الإجراء الموصى به
+  aiGenerated     Boolean  @default(true)
+  relatedCorrespondenceId String?
+  aiAssistantId   String?
+  acknowledgedAt  DateTime?
+  acknowledgedBy  String?
+  resolvedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // علاقات
+  correspondence  MinisterCorrespondence? @relation(fields: [relatedCorrespondenceId], references: [id])
+  aiAssistant     AiAssistant? @relation(fields: [aiAssistantId], references: [id])
+}
+
+// تحليل الأداء الوزاري
+model PerformanceAnalytics {
+  id              String   @id @default(cuid())
+  period          String   // "daily", "weekly", "monthly", "quarterly", "yearly"
+  startDate       DateTime
+  endDate         DateTime
+  metrics         Json     // المؤشرات المحللة
+  insights        Json     // الرؤى والتحليلات
+  recommendations Json     // التوصيات بناءً على التحليل
+  trends          Json     // اتجاهات الأداء
+  benchmarks      Json     // المقارنات مع المعايير
+  generatedAt     DateTime @default(now())
+  aiGenerated     Boolean  @default(true)
+}
+
+// مستخدمو النظام
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String
+  role            String   // "minister", "deputy_minister", "director", "manager", "staff"
+  department      String
+  permissions     Json     // صلاحيات المستخدم
+  isActive        Boolean  @default(true)
+  lastLogin       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
