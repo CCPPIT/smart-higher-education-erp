@@ -42,3 +42,5 @@ export const Notifications: React.FC<NotificationsProps> = ({ className = "" }) 
     </motion.div>
   );
 };
+
+export default Notifications;

@@ -69,3 +69,5 @@ export const MinisterHeader: React.FC<MinisterHeaderProps> = ({ className = "" }
     </motion.div>
   );
 };
+
+export default MinisterHeader;

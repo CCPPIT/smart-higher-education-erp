@@ -1,37 +1,38 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { MainLayout } from "@/components/layout";
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { TRPCProvider } from '@/trpc/client'
+import { MainLayout } from '@/components/layout'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "نظام التعليم العالي الذكي",
-  description: "نظام إدارة التعليم العالي المتقدم - لوحة التحكم الرئيسية",
-};
+  title: 'نظام التعليم العالي الذكي',
+  description: 'نظام إدارة التعليم العالي المتطور مع الذكاء الاصطناعي',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="ar" dir="rtl">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <MainLayout>
+    <html lang="ar" dir="rtl"
+    suppressHydrationWarning
+    >
+      <body className={inter.className}>
+        <TRPCProvider>
+          <MainLayout>
+
+          
+         
+
+         
           {children}
-        </MainLayout>
+          </MainLayout>
+          
+        </TRPCProvider>
       </body>
     </html>
-  );
+  )
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, CheckSquare, Calendar, TrendingUp } from 'lucide-react';
+import { trpc } from '@/trpc/client';
 
 interface Stat {
   title: string;
@@ -15,12 +16,68 @@ interface MinisterStatsProps {
 }
 
 export const MinisterStats: React.FC<MinisterStatsProps> = ({ className = "" }) => {
-  const stats: Stat[] = [
-    { title: 'المراسلات الواردة', value: '156', icon: Mail, color: 'text-blue-600', trend: '+12%' },
-    { title: 'القرارات الصادرة', value: '23', icon: CheckSquare, color: 'text-green-600', trend: '+8%' },
-    { title: 'الاجتماعات المقررة', value: '12', icon: Calendar, color: 'text-purple-600', trend: '+5%' },
-    { title: 'التقارير المقدمة', value: '18', icon: TrendingUp, color: 'text-orange-600', trend: '+15%' }
-  ];
+  // جلب إحصائيات لوحة التحكم من tRPC
+  const { data: stats, isLoading } = trpc.ministerOffice.dashboard.getStats.useQuery();
+
+  // تحويل البيانات من tRPC إلى تنسيق المكون
+  const formattedStats: Stat[] = React.useMemo(() => {
+    if (!stats) return [];
+
+    return [
+      {
+        title: 'المراسلات الواردة',
+        value: stats.totalCorrespondence.toString(),
+        icon: Mail,
+        color: 'text-blue-600',
+        trend: '+12%'
+      },
+      {
+        title: 'القرارات الصادرة',
+        value: stats.totalDecisions.toString(),
+        icon: CheckSquare,
+        color: 'text-green-600',
+        trend: '+8%'
+      },
+      {
+        title: 'الاجتماعات المقررة',
+        value: stats.totalMeetings.toString(),
+        icon: Calendar,
+        color: 'text-purple-600',
+        trend: '+5%'
+      },
+      {
+        title: 'التقارير المقدمة',
+        value: stats.totalReports.toString(),
+        icon: TrendingUp,
+        color: 'text-orange-600',
+        trend: '+15%'
+      }
+    ];
+  }, [stats]);
+
+  if (isLoading) {
+    return (
+      <motion.div
+        className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 ${className}`}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        {[...Array(4)].map((_, index) => (
+          <div key={index} className="bg-white rounded-lg border border-gray-200 p-6 shadow-lg animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+                <div className="h-8 bg-gray-200 rounded w-16"></div>
+                <div className="h-3 bg-gray-200 rounded w-12"></div>
+              </div>
+              <div className="w-8 h-8 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        ))}
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -29,7 +86,7 @@ export const MinisterStats: React.FC<MinisterStatsProps> = ({ className = "" }) 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
     >
-      {stats.map((stat, index) => {
+      {formattedStats.map((stat, index) => {
         const Icon = stat.icon;
         return (
           <motion.div
@@ -56,3 +113,5 @@ export const MinisterStats: React.FC<MinisterStatsProps> = ({ className = "" }) 
     </motion.div>
   );
 };
+
+export default MinisterStats;

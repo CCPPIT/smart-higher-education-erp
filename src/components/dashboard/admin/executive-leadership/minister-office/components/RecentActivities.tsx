@@ -3,29 +3,99 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Activity } from 'lucide-react';
+import { trpc } from '@/trpc/client';
 
 interface Activity {
-  id: number;
+  id: string;
   type: string;
   title: string;
   time: string;
   priority: string;
+  createdAt: string;
 }
 
 interface RecentActivitiesProps {
-  activities?: Activity[];
   className?: string;
 }
 
-export const RecentActivities: React.FC<RecentActivitiesProps> = ({
-  activities = [
-    { id: 1, type: 'مراسلة واردة', title: 'طلب دعم فني لنظام التعليم الإلكتروني', time: 'منذ ساعتين', priority: 'عالي' },
-    { id: 2, type: 'قرار صادر', title: 'اعتماد خطة التطوير الرقمي للعام 2025', time: 'منذ 4 ساعات', priority: 'متوسط' },
-    { id: 3, type: 'اجتماع', title: 'اجتماع مع رؤساء الجامعات حول الابتكار', time: 'منذ يوم واحد', priority: 'عالي' },
-    { id: 4, type: 'تقرير', title: 'تقرير شهري عن حالة التعليم العالي', time: 'منذ يومين', priority: 'متوسط' }
-  ],
-  className = ""
-}) => {
+export const RecentActivities: React.FC<RecentActivitiesProps> = ({ className = "" }) => {
+  // جلب الأنشطة الأخيرة من خلال استعلامات متعددة
+  const { data: correspondence = [] } = trpc.ministerOffice.correspondence.getAll.useQuery({
+    limit: 3,
+    offset: 0
+  });
+
+  const { data: decisions = [] } = trpc.ministerOffice.decisions.getAll.useQuery({
+    limit: 3,
+    offset: 0
+  });
+
+  const { data: meetings = [] } = trpc.ministerOffice.meetings.getAll.useQuery({
+    limit: 3,
+    offset: 0
+  });
+
+  // تحويل البيانات إلى تنسيق موحد للأنشطة
+  const activities: Activity[] = React.useMemo(() => {
+    const allActivities: Activity[] = [];
+
+    // إضافة المراسلات
+    correspondence.slice(0, 3).forEach((item: any) => {
+      allActivities.push({
+        id: `corr-${item.id}`,
+        type: 'مراسلة واردة',
+        title: item.subject,
+        time: new Date(item.createdAt).toLocaleString('ar-SA', {
+          hour: '2-digit',
+          minute: '2-digit',
+          day: 'numeric',
+          month: 'short'
+        }),
+        priority: item.priority,
+        createdAt: item.createdAt
+      });
+    });
+
+    // إضافة القرارات
+    decisions.slice(0, 3).forEach((item: any) => {
+      allActivities.push({
+        id: `decision-${item.id}`,
+        type: 'قرار صادر',
+        title: item.title,
+        time: new Date(item.createdAt).toLocaleString('ar-SA', {
+          hour: '2-digit',
+          minute: '2-digit',
+          day: 'numeric',
+          month: 'short'
+        }),
+        priority: item.priority,
+        createdAt: item.createdAt
+      });
+    });
+
+    // إضافة الاجتماعات
+    meetings.slice(0, 3).forEach((item: any) => {
+      allActivities.push({
+        id: `meeting-${item.id}`,
+        type: 'اجتماع',
+        title: item.title,
+        time: new Date(item.createdAt).toLocaleString('ar-SA', {
+          hour: '2-digit',
+          minute: '2-digit',
+          day: 'numeric',
+          month: 'short'
+        }),
+        priority: 'متوسط',
+        createdAt: item.createdAt
+      });
+    });
+
+    // ترتيب حسب التاريخ
+    return allActivities
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 6);
+  }, [correspondence, decisions, meetings]);
+
   return (
     <motion.div
       className={className}
@@ -42,32 +112,44 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {activities.map((activity) => (
-              <motion.div
-                key={activity.id}
-                className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: activity.id * 0.1 }}
-              >
-                <div className={`w-2 h-2 rounded-full mt-2 ${
-                  activity.priority === 'عالي' ? 'bg-red-500' : 'bg-yellow-500'
-                }`} />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm">{activity.type}</span>
-                    <Badge variant={activity.priority === 'عالي' ? 'destructive' : 'secondary'} className="text-xs">
-                      {activity.priority}
-                    </Badge>
+            {activities.length > 0 ? (
+              activities.map((activity) => (
+                <motion.div
+                  key={activity.id}
+                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <div className={`w-2 h-2 rounded-full mt-2 ${
+                    activity.priority === 'عالي' || activity.priority === 'high' ? 'bg-red-500' : 'bg-yellow-500'
+                  }`} />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">{activity.type}</span>
+                      <Badge
+                        variant={activity.priority === 'عالي' || activity.priority === 'high' ? 'destructive' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {activity.priority}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-700 mb-1">{activity.title}</p>
+                    <p className="text-xs text-gray-500">{activity.time}</p>
                   </div>
-                  <p className="text-sm text-gray-700 mb-1">{activity.title}</p>
-                  <p className="text-xs text-gray-500">{activity.time}</p>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Activity className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>لا توجد أنشطة حديثة</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
     </motion.div>
   );
 };
+
+export default RecentActivities;

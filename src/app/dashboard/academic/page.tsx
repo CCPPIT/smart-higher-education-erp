@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MainLayout } from '@/components/layout';
+import { ContentArea, MainLayout } from '@/components/layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import { GraduationCap, Users, BookOpen, Award, Calendar, TrendingUp } from 'luc
 
 const AcademicPage = () => {
   return (
-    <MainLayout>
+    <ContentArea>
       <motion.div
         className="space-y-8"
         initial={{ opacity: 0, y: 20 }}
@@ -104,7 +104,7 @@ const AcademicPage = () => {
           </Card>
         </div>
       </motion.div>
-    </MainLayout>
+    </ContentArea>
   );
 };
 

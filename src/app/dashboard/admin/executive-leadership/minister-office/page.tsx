@@ -1,11 +1,17 @@
-import React from 'react'
+'use client';
 
-type Props = {}
+import React from 'react';
+import { MinisterOffice } from '@/components/dashboard/admin/executive-leadership';
 
-const page = (props: Props) => {
-  return (
-    <div>page</div>
-  )
-}
+const MinisterOfficePage: React.FC = () => {
+  return(
+   
 
-export default page
+    
+    <MinisterOffice/>
+   
+ 
+  );
+};
+
+export default MinisterOfficePage;
