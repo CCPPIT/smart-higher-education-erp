@@ -26,7 +26,7 @@ const ContentArea: React.FC<ContentAreaProps> = ({
   return (
     <motion.main
       className={cn(
-        "flex-1 relative overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100",
+        "flex-1 relative overflow-y-auto overflow-x-hidden bg-gradient-to-br from-gray-50 via-white to-gray-100",
         className
       )}
       initial={{ opacity: 0 }}

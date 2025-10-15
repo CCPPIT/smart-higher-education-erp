@@ -45,3 +45,5 @@ export const AISuggestions: React.FC<AISuggestionsProps> = ({ className = "" }) 
     </motion.div>
   );
 };
+
+export default AISuggestions;

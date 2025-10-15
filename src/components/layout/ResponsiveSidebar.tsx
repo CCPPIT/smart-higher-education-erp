@@ -14,20 +14,26 @@ interface SidebarProps {
   className?: string;
 }
 
+// Extract SidebarContent as a separate component to avoid hooks being called from nested function
+interface SidebarContentProps {
+  isOpen: boolean;
+  isMobile?: boolean;
+}
+
+const SidebarContent: React.FC<SidebarContentProps> = ({ isOpen, isMobile = false }) => (
+  <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-white to-slate-100 border-r border-gray-200 w-full">
+    <SidebarHeader isOpen={isOpen} isMobile={isMobile} />
+    <SidebarNavigation isOpen={isOpen} />
+    <SidebarFooter isOpen={isOpen} />
+  </div>
+);
+
 const ResponsiveSidebar: React.FC<SidebarProps> = ({
   isOpen,
   onToggle,
   isMobile = false,
   className
 }) => {
-  const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-white to-slate-100 border-r border-gray-200 w-full">
-      <SidebarHeader isOpen={isOpen} isMobile={isMobile} />
-      <SidebarNavigation isOpen={isOpen} />
-      <SidebarFooter isOpen={isOpen} />
-    </div>
-  );
-
   if (isMobile) {
     return (
       <AnimatePresence>
@@ -50,7 +56,7 @@ const ResponsiveSidebar: React.FC<SidebarProps> = ({
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
             >
-              <SidebarContent />
+              <SidebarContent isOpen={isOpen} isMobile={isMobile} />
             </motion.div>
           </>
         )}
@@ -71,7 +77,7 @@ const ResponsiveSidebar: React.FC<SidebarProps> = ({
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       <div className="h-full w-full">
-        <SidebarContent />
+        <SidebarContent isOpen={isOpen} isMobile={isMobile} />
       </div>
     </motion.div>
   );
